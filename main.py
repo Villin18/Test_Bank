@@ -56,11 +56,12 @@ def sign_up():
         name = input('\nКак вас зовут: ')
         login = input('\nУкажите ваш логин: ')
         password = input('\nВведите пароль: ')
-
-        cur.execute("INSERT INTO users(name, login, password) VALUES (?, ?, ?)", (name, login, password))
-        db.commit()
-        print("Регистрация успешна!")
-
+        if login and password:
+            cur.execute("INSERT INTO users(name, login, password) VALUES (?, ?, ?)", (name, login, password))
+            db.commit()
+            print("Регистрация успешна!")
+        else:
+            print("Ошибка ввода данных")
     except sqlite3.IntegrityError:
         print("Ошибка: Логин уже занят!")
     except Exception as e:
@@ -70,16 +71,16 @@ def sign_up():
 def sign_in():
     login = input('\nЛогин: ')
     password = input('Пароль: ')
-
-    cur.execute("SELECT name FROM users WHERE login=? AND password=?", (login, password))
-    user = cur.fetchone()
-
-    if user:
-        print(f"Добро пожаловать, {user[0]}!")
-        show_menu(user[0])
+    if login and password:
+        cur.execute("SELECT name FROM users WHERE login=? AND password=?", (login, password))
+        user = cur.fetchone()
+        if user:
+            print(f"Добро пожаловать, {user[0]}!")
+            show_menu(user[0])
+        else:
+            print("Ошибка: Неверный логин или пароль!")
     else:
-        print("Ошибка: Неверный логин или пароль!")
-
+        print("Ошибка ввода данных")
 
 def show_menu(name):
     while True:
