@@ -89,6 +89,7 @@ def show_menu(name):
 
         vibor_menu = {
             'Посмотреть баланс': show_balance,
+            'Перевести деньги' : perevod,
             'Выход': None
         }
         for num, znach in enumerate(vibor_menu, 1):
@@ -96,11 +97,13 @@ def show_menu(name):
 
         try:
             n = int(input('\nВыберите необходимое: '))
-            if n == 2:
+            if n == 3:
                 print('Выход из аккаунта...')
                 break
             elif n == 1:
                 show_balance(name)
+            elif n == 2:
+                perevod(name)
             else:
                 print("Ошибка: Выберите число от 1 до 2")
         except ValueError:
@@ -116,7 +119,27 @@ def show_balance(name):
         print(f"\nВаш баланс: {balance} руб.")
     else:
         print("Ошибка: Пользователь не найден!")
-
+def perevod(name):
+    cur.execute("SELECT balance FROM users WHERE name=?", (name,))
+    result = cur.fetchone()
+    zapros_login = input('Введите логин пользователя: ')
+    cur.execute("SELECT name, balance FROM users WHERE login=?", (zapros_login,))
+    user = cur.fetchone()
+    if not user:
+        print("Ошибка: Получатель не найден")
+        return
+    if zapros_login == name:
+        print("Ошибка: Нельзя переводить деньги самому себе")
+        return
+    amount = float(input('Сколько вы хотите перевести: '))
+    if result[0] < amount:
+        print("Ошибка: Недостаточно средств для перевода")
+        return
+    if result and user:
+        cur.execute("UPDATE users SET balance = balance - ? WHERE name = ?", (amount, name))
+        cur.execute("UPDATE users SET balance = balance + ? WHERE name = ?", (amount, zapros_login))
+        db.commit()
+        print(f"\nВы перевели деньги {zapros_login}.\n")
 
 if __name__ == "__main__":
     main()
