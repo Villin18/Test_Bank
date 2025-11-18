@@ -12,9 +12,19 @@ def init_db():
             login TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
             balance REAL DEFAULT 1000.0
+            
         )
     """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS history(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            zapros_login TEXT NOT NULL,
+            amount REAL DEFAULT 0,
+            type_operation CHAR(1)
 
+        )
+    """)
     db.commit()
     return db, cur
 
@@ -40,7 +50,7 @@ def main():
 
         try:
             n = int(input('\nВыберите необходимое: '))
-            if n == 3:
+            if n == len(lst_predlozhenia_vhoda):
                 print('До свидания!')
                 break
             elif 1 <= n <= 2:
@@ -86,24 +96,23 @@ def show_menu(name):
     while True:
         print(f"\n=== Личный кабинет ===")
         print(f"Пользователь: {name}")
-
         vibor_menu = {
             'Посмотреть баланс': show_balance,
             'Перевести деньги' : perevod,
+            'Посмотреть историю' : history,
             'Выход': None
         }
+        lst_vibor = list(vibor_menu.values())
         for num, znach in enumerate(vibor_menu, 1):
             print(f"{num}. {znach}")
 
         try:
             n = int(input('\nВыберите необходимое: '))
-            if n == 3:
+            if n == len(lst_vibor):
                 print('Выход из аккаунта...')
                 break
-            elif n == 1:
-                show_balance(name)
-            elif n == 2:
-                perevod(name)
+            elif 1 <= n <= 3:
+                lst_vibor[n - 1](name)
             else:
                 print("Ошибка: Выберите число от 1 до 2")
         except ValueError:
@@ -140,6 +149,34 @@ def perevod(name):
         cur.execute("UPDATE users SET balance = balance + ? WHERE name = ?", (amount, zapros_login))
         db.commit()
         print(f"\nВы перевели деньги {zapros_login}.\n")
+        add_history_record(name, "Перевели ", -amount, zapros_login)
+        add_history_record(zapros_login, "Пополнение", amount, name)
 
+def add_history_record(name, type_operation, amount, zapros_login=None):
+    cur.execute("""
+        INSERT INTO history (name, type_operation, amount, zapros_login) 
+        VALUES (?, ?, ?, ?)
+    """, (name, type_operation, amount, zapros_login))
+    db.commit()
+
+def history(name):
+    cur.execute("SELECT type_operation, amount, zapros_login FROM history WHERE name=? LIMIT 10", (name,))
+    operations = cur.fetchall()
+    if not operations:
+        print('История пуста')
+        return
+    print(f'Ваша история операций {name}')
+    for operation in operations:
+        op_type,amount,zapros_login = operation
+        if amount >= 0:
+            amount_str = f' {amount} руб.'
+        else:
+            amount_str = f'{amount} руб.'
+        print(f'\nОперация: {op_type}')
+        print(f'Сумма: {amount_str}')
+        if zapros_login and op_type == 'Перевели':
+            print(f'Кому: {zapros_login}')
+        else:
+            print(f'От кого: {zapros_login}')
 if __name__ == "__main__":
     main()
